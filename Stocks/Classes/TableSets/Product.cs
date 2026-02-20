@@ -16,6 +16,12 @@ namespace Stocks.Classes.TableSets
         public int Number { get; set; }
         public double PurchasePrice { get; set; }
         public double SalePrice { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Name} - Qty: {Number} - Price: {SalePrice}";
+        }
+
         #pragma warning disable CS8618 
         public Product() { }
         #pragma warning restore CS8618 

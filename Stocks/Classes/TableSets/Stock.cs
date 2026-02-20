@@ -14,6 +14,12 @@ namespace Stocks.Classes.TableSets
         public int StockID { get; set; }
         public int ProductID { get; set; }
         public int Number { get; set; }
+
+        public override string ToString()
+        {
+            return $"StockID: {StockID} - ProductID: {ProductID} - Qty: {Number}";
+        }
+
         public Stock() { }
     }
 }

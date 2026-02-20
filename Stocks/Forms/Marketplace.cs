@@ -46,19 +46,44 @@ namespace Stocks
 
         private void BuyButton_Click(object sender, EventArgs e)
         {
-            SqlServerDecoder decoder = new SqlServerDecoder();
-            var Product = productsListBox.SelectedItem as Product;
-            int number = Convert.ToInt32(numberTextBox.Text.Trim());
+            using (var db = new StockDatabase())
+            {
+                var Product = productsListBox.SelectedItem as Product;
+                int number = Convert.ToInt32(numberTextBox.Text.Trim());
 
-            if (Product != null && number > 0 && number <= Product.Number) 
-            {
-                decoder.AddStock(Product.ProductId, number);
-                decoder.removeProduct(Product.ProductId, number);
-            }
-            else 
-            {
-                MessageBox.Show("There is not enough product in the marketplace please try again", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (Product != null && number > 0 && number <= Product.Number) 
+                {
+                    // Add to stocks table
+                    var stock = db.stocks.FirstOrDefault(s => s.ProductID == Product.ProductId);
+                    if (stock != null)
+                    {
+                        stock.Number += number;
+                    }
+                    else
+                    {
+                        db.stocks.Add(new Stock { ProductID = Product.ProductId, Number = number });
+                    }
+
+                    // Remove from products table (marketplace inventory)
+                    var dbProduct = db.products.FirstOrDefault(p => p.ProductId == Product.ProductId);
+                    if (dbProduct != null)
+                    {
+                        dbProduct.Number -= number;
+                    }
+                    
+                    db.SaveChanges();
+                    MessageBox.Show("Purchase completed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // Refresh list
+                    var products = db.products.ToList();
+                    productsListBox.DataSource = products;
+                    productsListBox.SelectedIndex = -1;
+                }
+                else 
+                {
+                    MessageBox.Show("There is not enough product in the marketplace please try again", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
         }
     }

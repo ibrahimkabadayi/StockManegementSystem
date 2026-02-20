@@ -21,30 +21,80 @@ namespace Stocks
 
         private void button1_Click(object sender, EventArgs e)
         {
-            string name = nameTextBox.Text;
-            string address = adressTextBox.Text;
-            string country = countryTextBox.Text;
-            string telephoneNumber = telephoneNumberTextBox.Text;
-            int number = Convert.ToInt32(numberTextBox.Text);
+            string name = nameTextBox.Text.Trim();
+            string address = adressTextBox.Text.Trim();
+            string country = countryTextBox.Text.Trim();
+            string telephoneNumber = telephoneNumberTextBox.Text.Trim();
+            int number;
 
-            if (stockListBox.SelectedIndex < 0) { return; }
-
-            var stock = stockListBox.SelectedItem as Stock;
-
-            if (!(name.Length > 0 && address.Length > 0 && country.Length > 0 && telephoneNumber.Length > 0 && number > 0)) 
+            if (!int.TryParse(numberTextBox.Text.Replace("_", "").Replace(" ", ""), out number) || number <= 0)
             {
-                MessageBox.Show("Please fill all textboxes","Error",MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Please enter a valid number.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            SqlServerDecoder decoder = new SqlServerDecoder();
-            decoder.AddCustomer(name, country, address, telephoneNumber);
-            int id = decoder.FindCustomer(name);
+            if (stockListBox.SelectedIndex < 0) 
+            {
+                MessageBox.Show("Please select a stock.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return; 
+            }
 
-            decoder.RemoveStock(stock.StockID, number);
+            var stock = stockListBox.SelectedItem as Stock;
 
-            decoder.AddStockMovement(stock.ProductID, "Sell", null, -1, id, number);
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(address) || 
+                string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(telephoneNumber)) 
+            {
+                MessageBox.Show("Please fill all textboxes", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
+            if (stock.Number < number)
+            {
+                MessageBox.Show("Not enough stock available.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            using (var db = new StockDatabase())
+            {
+                var customer = db.customers.FirstOrDefault(c => c.Name == name && c.TelephoneNumber == telephoneNumber);
+                if (customer == null)
+                {
+                    customer = new Customer
+                    {
+                        Name = name,
+                        Country = country,
+                        Address = address,
+                        TelephoneNumber = telephoneNumber
+                    };
+                    db.customers.Add(customer);
+                    db.SaveChanges(); // Save to get CustomerID
+                }
+
+                var dbStock = db.stocks.FirstOrDefault(s => s.StockID == stock.StockID);
+                if (dbStock != null)
+                {
+                    dbStock.Number -= number;
+                }
+
+                var movement = new StockMovement
+                {
+                    ProductID = stock.ProductID,
+                    MovementType = "Buy",
+                    Number = number,
+                    Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                    CustomerId = customer.CustomerID,
+                    StaffId = -1
+                };
+                db.stockMovements.Add(movement);
+
+                db.SaveChanges();
+                MessageBox.Show("Order request sent successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // Refresh list
+                var stocks = db.stocks.ToList();
+                stockListBox.DataSource = stocks;
+                stockListBox.SelectedIndex = -1;
+            }
         }
 
         private void returnToMenuButton_Click(object sender, EventArgs e)

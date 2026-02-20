@@ -35,15 +35,50 @@ namespace Stocks
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (customerListBox.SelectedIndex == -1 || ordersListBox.SelectedIndex == -1) { return; }
-            if (dateTextBox.Text.Length != 16) return;
+            ConfirmOrder();
+        }
+
+        private void ConfirmOrder()
+        {
+            if (customerListBox.SelectedIndex == -1 || ordersListBox.SelectedIndex == -1) 
+            {
+                MessageBox.Show("Please select both a customer and an order.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return; 
+            }
 
             var Customer = customerListBox.SelectedItem as Customer;
             var stockMovement = ordersListBox.SelectedItem as StockMovement;
 
-            SqlServerDecoder decoder = new SqlServerDecoder();
-            decoder.AddStockMovement(stockMovement.ProductID, "Sell", dateTextBox.Text, id, Customer.CustomerID, stockMovement.Number);
-            return;
+            if (stockMovement == null) return;
+
+            using (var db = new StockDatabase())
+            {
+                // Create the 'Sell' movement
+                var newMovement = new StockMovement
+                {
+                    ProductID = stockMovement.ProductID,
+                    MovementType = "Sell", // Confirmed sale
+                    Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                    StaffId = id,
+                    CustomerId = Customer.CustomerID,
+                    Number = stockMovement.Number
+                };
+                db.stockMovements.Add(newMovement);
+
+                // Update the original 'Buy' movement to something else or delete it?
+                // Let's mark it as 'Processed' so it doesn't show up in the pending list.
+                var originalMovement = db.stockMovements.FirstOrDefault(sm => sm.MovementID == stockMovement.MovementID);
+                if (originalMovement != null)
+                {
+                    originalMovement.MovementType = "Confirmed";
+                }
+
+                db.SaveChanges();
+                MessageBox.Show("Order confirmed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // Refresh the orders list
+                customerListBox_SelectedIndexChanged(null, null);
+            }
         }
 
         private async void customerListBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -96,7 +131,7 @@ namespace Stocks
 
         private void confirmButton_Click(object sender, EventArgs e)
         {
-
+            ConfirmOrder();
         }
     }
 }
