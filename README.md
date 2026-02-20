@@ -2,18 +2,6 @@
 
 A comprehensive Windows Forms application for managing stocks, products, customers, and employees. This system allows salesmen to purchase products from a marketplace into the inventory and consultants to manage customer orders.
 
-## Table of Contents
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Database Schema](#database-schema)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Usage Guide](#usage-guide)
-  - [Roles](#roles)
-- [Project Structure](#project-structure)
-- [License](#license)
-
 ## Features
 
 - **Role-Based Access**: Specialized interfaces for Salesmen, Consultants, and Customers.
